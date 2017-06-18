@@ -78,28 +78,44 @@ namespace NadekoBot.Services.Permissions
 
             var filteredChannelWords = FilteredWordsForChannel(usrMsg.Channel.Id, guild.Id) ?? new ConcurrentHashSet<string>();
             var filteredServerWords = FilteredWordsForServer(guild.Id) ?? new ConcurrentHashSet<string>();
-            var wordsInMessage = usrMsg.Content.ToLowerInvariant().Split(' ');
+            var fullMessage = usrMsg.Content.ToLowerInvariant();    // check for any string that contains filtered word
             if (filteredChannelWords.Count != 0 || filteredServerWords.Count != 0)
             {
-                foreach (var word in wordsInMessage)
-                {
-                    if (filteredChannelWords.Contains(word) ||
-                        filteredServerWords.Contains(word))
-                    {
-                        try
-                        {
-                            await usrMsg.DeleteAsync().ConfigureAwait(false);
-                        }
-                        catch (HttpException ex)
-                        {
-                            _log.Warn("I do not have permission to filter words in channel with id " + usrMsg.Channel.Id, ex);
-                        }
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
+              // iterate through filtered words to see if full message contains it
+              foreach (var word in filteredChannelWords)
+              {
+                  if (fullMessage.Contains(word))
+                  {
+                      try
+                      {
+                          await usrMsg.DeleteAsync().ConfigureAwait(false);
+                      }
+                      catch (HttpException ex)
+                      {
+                          _log.Warn("I do not have permission to filter words in channel with id " + usrMsg.Channel.Id, ex);
+                      }
+                      return true;
+                  }
+              }
+              foreach (var word in filteredServerWords)
+              {
+                  if (fullMessage.Contains(word))
+                  {
+                      try
+                      {
+                          await usrMsg.DeleteAsync().ConfigureAwait(false);
+                      }
+                      catch (HttpException ex)
+                      {
+                          _log.Warn("I do not have permission to filter words in channel with id " + usrMsg.Channel.Id, ex);
+                      }
+                      return true;
+                  }
+              }
+
+          }
+          return false;
+      }
 
         public async Task<bool> FilterInvites(IGuild guild, IUserMessage usrMsg)
         {
